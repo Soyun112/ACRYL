@@ -1,19 +1,23 @@
 "use client";
 
+import Link from "next/link";
 import { ANALYSIS_FIELDS, STRUCTURED_OUTPUT_NOTE } from "@/lib/criteria";
 import { gradeLabel } from "@/lib/grade";
+import { TRIAL_ORG_LABEL } from "@/lib/trial";
 import type { ContactRecord } from "@/lib/types";
 
 export function DetailPanel({
   record,
   columns,
   selected,
+  showTrial,
   onToggleSelected,
   onClose,
 }: {
   record: ContactRecord;
   columns: string[];
   selected: boolean;
+  showTrial: boolean;
   onToggleSelected: (contactId: string) => void;
   onClose: () => void;
 }) {
@@ -33,7 +37,13 @@ export function DetailPanel({
       </div>
       <div className="space-y-6 px-5 py-5 text-sm">
         <dl className="grid grid-cols-2 gap-3">
-          <Item label="고객ID" value={record.customerId || "미입력"} />
+          <div>
+            <dt className="text-xs text-muted">고객ID</dt>
+            <dd className="mt-1 whitespace-pre-wrap">
+              {record.customerId || "미입력"}
+              {showTrial && <small className="org">{TRIAL_ORG_LABEL}</small>}
+            </dd>
+          </div>
           <Item label="접점ID" value={record.contactId} />
           <Item label="후보 등급" value={record.grade ? gradeLabel(record.grade) : record.status} />
         </dl>
@@ -53,6 +63,18 @@ export function DetailPanel({
             <Item label="검토사유" value={record.analysis?.reviewReasons.join(", ") || "아직 없음"} />
           </dl>
         </section>
+        {showTrial && (
+          <section className="trial">
+            <h3>체험판 안내 메일</h3>
+            <p className="hint">
+              <b>{TRIAL_ORG_LABEL}</b> 담당자에게 보낼 체험판 안내 메일 초안을 만듭니다.
+            </p>
+            <Link className="btn-primary gen" href={`/trial/${encodeURIComponent(record.contactId)}`}>
+              ✦ 생성하기
+            </Link>
+            <p className="fine">메일 초안은 Gemini가 작성합니다</p>
+          </section>
+        )}
         <section>
           <h3 className="font-semibold">원본 상담 기록</h3>
           <dl className="source-block mt-3 space-y-3">

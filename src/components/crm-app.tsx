@@ -19,6 +19,8 @@ import { clearStoredJob, loadActiveJob, saveJob } from "@/lib/storage";
 import { blankCounts, countByStatus, countUniqueCustomers } from "@/lib/summary";
 import type { AppConfig, ContactRecord, StoredJob } from "@/lib/types";
 
+const DEMO_HOLD_MS = 10_000;
+
 const CONFIG_MESSAGE =
   "서버에 GEMINI_API_KEY 또는 GEMINI_MODEL이 설정되어 있지 않습니다. 프로젝트 루트의 .env.local에 넣은 뒤 개발 서버를 다시 시작해 주세요.";
 
@@ -42,6 +44,7 @@ export function CrmApp() {
   const [encodingError, setEncodingError] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
+  const [holdingAnalysis, setHoldingAnalysis] = useState(false);
   const [pauseRequested, setPauseRequested] = useState(false);
   const [criteriaOpen, setCriteriaOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -134,30 +137,54 @@ export function CrmApp() {
     const records = recordsFromParsed(parsed);
     const seq = uploadSeq.current + 1;
     uploadSeq.current = seq;
-    setNotice("저장된 분류를 불러오는 중입니다.");
-    const demo = await requestDemoMatches(records);
-    if (seq !== uploadSeq.current) return;
-    if (!demo) {
-      setNotice("저장된 시연 결과를 불러오지 못했습니다. 파일을 다시 올려 주세요.");
-      return;
-    }
-    const next: StoredJob = {
+    const pending: StoredJob = {
       id,
       fileName: file.name,
       criteriaVersion: CRITERIA_VERSION,
       modelId,
       columns: parsed.columns,
-      records: applyDemoMatches(records, demo.matches, demo.criteriaVersion),
+      records,
       selectedIds: [],
-      phase: "completed",
+      phase: "running",
       haltMessage: null,
-      sourceNote: demo.displayLabel,
+      sourceNote: null,
       updatedAt: new Date().toISOString(),
     };
-    setNotice(null);
+    jobRef.current = pending;
+    setJob(pending);
     setActiveId(null);
     setCriteriaBlocked(false);
-    replaceJob(next);
+    setNotice(null);
+    setHoldingAnalysis(true);
+    setRunning(true);
+    runningRef.current = true;
+    const startedAt = Date.now();
+    const demo = await requestDemoMatches(records);
+    if (seq !== uploadSeq.current) return;
+    if (!demo) {
+      setHoldingAnalysis(false);
+      setRunning(false);
+      runningRef.current = false;
+      if (jobRef.current?.id === id) {
+        jobRef.current = null;
+        setJob(null);
+      }
+      setNotice("저장된 시연 결과를 불러오지 못했습니다. 파일을 다시 올려 주세요.");
+      return;
+    }
+    const remain = DEMO_HOLD_MS - (Date.now() - startedAt);
+    if (remain > 0) await new Promise((resolve) => setTimeout(resolve, remain));
+    if (seq !== uploadSeq.current) return;
+    setHoldingAnalysis(false);
+    setRunning(false);
+    runningRef.current = false;
+    replaceJob({
+      ...pending,
+      records: applyDemoMatches(records, demo.matches, demo.criteriaVersion),
+      phase: "completed",
+      sourceNote: demo.displayLabel,
+      updatedAt: new Date().toISOString(),
+    });
   }
 
   const modelMismatch = Boolean(job && config?.model && job.modelId && job.modelId !== config.model);
@@ -246,11 +273,7 @@ export function CrmApp() {
   const partial = Boolean(
     activeJob && started && activeJob.records.some((record) => record.status === "대기" || record.status === "처리 중"),
   );
-  const step = !activeJob
-    ? 1
-    : activeJob.records.every((record) => record.status === "완료" || record.status === "실패" || record.status === "저장 결과 없음") && !running
-      ? 3
-      : 2;
+  const step = !activeJob ? 1 : holdingAnalysis ? 2 : activeJob.records.every((record) => record.status === "완료" || record.status === "실패" || record.status === "저장 결과 없음") && !running ? 3 : 2;
   const analyzed = Boolean(activeJob?.records.some((record) => record.status !== "대기"));
 
   const needsSetup = job?.haltMessage === CONFIG_MESSAGE && !job.sourceNote;
@@ -442,7 +465,14 @@ export function CrmApp() {
           onFile={(file) => void onFile(file)}
         />
       )}
-      {activeJob && !activeJob.sourceNote && (
+      {holdingAnalysis && (
+        <section className="shell" aria-live="polite">
+          <div className="panel mt-3">
+            <h2 className="text-base font-semibold">고객의 관심과 요청을 분석하고 있습니다</h2>
+          </div>
+        </section>
+      )}
+      {activeJob && !activeJob.sourceNote && !holdingAnalysis && (
         <RunPanel
           records={activeJob.records}
           running={running}

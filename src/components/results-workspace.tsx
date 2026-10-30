@@ -13,6 +13,7 @@ import { EMPTY_FILTERS, filterRecords, type ResultFilters } from "@/lib/filter";
 import { gradeLabel } from "@/lib/grade";
 import type { ContactRecord, Grade, ProcessingStatus } from "@/lib/types";
 import { DetailPanel } from "@/components/detail-panel";
+import { TRIAL_ORG_LABEL } from "@/lib/trial";
 
 const GRADE_CLASS: Record<Grade, string> = {
   A: "grade grade-a",
@@ -47,6 +48,7 @@ export function ResultsWorkspace({
   const currentPage = Math.min(page, pageCount);
   const start = (currentPage - 1) * BATCH_SETTINGS.pageSize;
   const visible = filtered.slice(start, start + BATCH_SETTINGS.pageSize);
+  const galleryContactId = filtered[0]?.contactId ?? null;
   const selected = new Set(selectedIds);
   const pageIds = visible.map((record) => record.contactId);
   const allPageSelected = pageIds.length > 0 && pageIds.every((id) => selected.has(id));
@@ -273,7 +275,10 @@ export function ResultsWorkspace({
                           }
                         />
                       </td>
-                      <td className="font-semibold">{record.customerId.trim() ? record.customerId : "—"}</td>
+                      <td className="font-semibold">
+                        {record.customerId.trim() ? record.customerId : "—"}
+                        {record.contactId === galleryContactId && <small className="org">{TRIAL_ORG_LABEL}</small>}
+                      </td>
                       <td>{record.grade ? <span className={GRADE_CLASS[record.grade]}>{gradeLabel(record.grade)}</span> : <span className="row-status" data-status={record.status}>{record.status}</span>}</td>
                       <td>
                         {record.analysis && record.analysis.interestAreas.length > 0 ? (
@@ -320,6 +325,7 @@ export function ResultsWorkspace({
             record={active}
             columns={columns}
             selected={selected.has(active.contactId)}
+            showTrial={active.contactId === galleryContactId}
             onToggleSelected={(contactId) => (selected.has(contactId) ? removeIds([contactId]) : addIds([contactId]))}
             onClose={() => onOpen(null)}
           />
