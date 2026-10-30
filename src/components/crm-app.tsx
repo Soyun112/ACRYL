@@ -247,11 +247,14 @@ export function CrmApp() {
     <div className="min-h-screen">
       <header className="site-header">
         <div className="shell header-inner">
-        <p className="brand">AX CONNECT</p>
+        <p className="brand">
+          <span className="brand-mark" aria-hidden="true">AX</span>
+          AX CONNECT
+        </p>
         <div className="header-actions">
-          <span className="inline-flex items-center gap-2" role="status">
-            {config?.configured && <span className="h-1.5 w-1.5 rounded-full bg-cyan" aria-hidden="true" />}
-            {apiLabel}
+          <span className="api-status" role="status">
+            <span className={`api-status-dot ${config?.configured ? "on" : ""}`} aria-hidden="true" />
+            AI {apiLabel}
           </span>
           <button type="button" className="btn-secondary" onClick={() => setCriteriaOpen(true)}>
             분류 기준
@@ -267,7 +270,7 @@ export function CrmApp() {
               더보기
             </button>
             {moreOpen && (
-              <div role="menu" className="absolute right-0 z-20 mt-1 min-w-36 bg-panel py-1 text-ink shadow-lg">
+              <div role="menu" className="menu">
                 <button
                   type="button"
                   role="menuitem"
@@ -297,7 +300,7 @@ export function CrmApp() {
           <h1>
             관심의 기록을,
             <br />
-            다음 제안으로.
+            <em>다음 제안으로.</em>
           </h1>
           <p>상담 기록에서 고객의 요구를 읽고, 맞춤 제안을 준비할 대상을 찾습니다.</p>
         </section>

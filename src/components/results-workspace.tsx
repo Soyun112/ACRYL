@@ -222,7 +222,7 @@ export function ResultsWorkspace({
         </div>
       )}
       <div className={active ? "mt-3 lg:grid lg:grid-cols-[minmax(0,1fr)_360px]" : "mt-3"}>
-        <div className="min-w-0 overflow-hidden rounded-2xl border border-line">
+        <div className="table-frame min-w-0">
           {filtered.length === 0 ? (
             <div className="bg-panel px-4 py-8 text-sm">
               <p>필터 조건에 맞는 접점이 없습니다.</p>
@@ -302,7 +302,7 @@ export function ResultsWorkspace({
               </table>
             </div>
           )}
-          <div className="flex items-center justify-between border-t border-line bg-panel px-4 py-3 text-sm">
+          <div className="flex items-center justify-between border-t border-line bg-panel px-4 py-3 text-sm text-muted">
             <button type="button" className="btn-secondary" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}>
               이전
             </button>

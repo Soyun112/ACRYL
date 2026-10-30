@@ -22,8 +22,8 @@ export function DetailPanel({
   );
 
   return (
-    <aside className="detail-sheet detail-overlay lg:static lg:max-h-[calc(100vh-80px)] lg:overflow-auto" aria-labelledby="detail-title">
-      <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
+    <aside className="detail-sheet detail-overlay lg:max-h-[calc(100vh-88px)] lg:overflow-auto" aria-labelledby="detail-title">
+      <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-line bg-panel px-5 py-4">
         <h2 id="detail-title" className="text-base font-semibold">
           접점 상세
         </h2>

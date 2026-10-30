@@ -130,7 +130,9 @@ export function UploadPanel({
             pick(event.dataTransfer.files[0]);
           }}
         >
-          <FileIcon />
+          <span className="dropzone-icon">
+            <FileIcon />
+          </span>
           <p className="mt-3 text-sm">파일을 끌어 놓거나 선택하세요</p>
           <button type="button" className="btn-primary mt-4" disabled={disabled} onClick={() => inputRef.current?.click()}>
             CSV 파일 선택
@@ -201,7 +203,7 @@ export function UploadPanel({
 
 function FileIcon() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="mx-auto h-8 w-8 text-accent">
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-7 w-7 text-accent">
       <path d="M7 3.5h6.5L19 9v11.5a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-16a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" strokeWidth="1.6" />
       <path d="M13.5 3.5V9H19" fill="none" stroke="currentColor" strokeWidth="1.6" />
     </svg>
