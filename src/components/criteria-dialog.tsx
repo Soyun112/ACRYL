@@ -6,6 +6,7 @@ import {
   LABEL_EXAMPLES,
   LABEL_GROUPS,
   PRINCIPLES,
+  SORT_NOTE,
   STRUCTURED_OUTPUT_NOTE,
   VALUE_DEFINITIONS,
 } from "@/lib/criteria";
@@ -64,6 +65,10 @@ export function CriteriaDialog({ open, onClose }: { open: boolean; onClose: () =
             )}
           </section>
         ))}
+        <section>
+          <h3 className="font-semibold">정렬</h3>
+          <p className="mt-1 text-muted">{SORT_NOTE}</p>
+        </section>
         <section>
           <h3 className="font-semibold">예시</h3>
           <ul className="mt-2 space-y-3">

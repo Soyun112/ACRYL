@@ -44,6 +44,7 @@ export function CrmApp() {
   const [pauseRequested, setPauseRequested] = useState(false);
   const [criteriaOpen, setCriteriaOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [sourceOpen, setSourceOpen] = useState(false);
   const [criteriaBlocked, setCriteriaBlocked] = useState(false);
   const [batchSize, setBatchSize] = useState<number>(BATCH_SETTINGS.defaultBatchSize);
   const [notice, setNotice] = useState<string | null>(null);
@@ -239,22 +240,26 @@ export function CrmApp() {
   const apiLabel = !ready ? "확인 중" : configError || !config ? "확인 실패" : config.configured ? "연결됨" : "설정 필요";
   const steps = ["데이터 업로드", "AI 분석", "제안 대상 검토"];
 
+  const fileName = draftName ?? job?.fileName ?? null;
+  const parsed = draft ?? (job ? previewFromJob(job) : null);
+
   return (
     <div className="min-h-screen">
       <header className="site-header">
+        <div className="shell header-inner">
         <p className="brand">AX CONNECT</p>
         <div className="header-actions">
           <span className="inline-flex items-center gap-2" role="status">
             {config?.configured && <span className="h-1.5 w-1.5 rounded-full bg-cyan" aria-hidden="true" />}
             {apiLabel}
           </span>
-          <button type="button" className="btn-ghost" onClick={() => setCriteriaOpen(true)}>
+          <button type="button" className="btn-secondary" onClick={() => setCriteriaOpen(true)}>
             분류 기준
           </button>
           <div className="relative">
             <button
               type="button"
-              className="btn-ghost"
+              className="btn-secondary"
               aria-expanded={moreOpen}
               aria-haspopup="menu"
               onClick={() => setMoreOpen((open) => !open)}
@@ -279,14 +284,24 @@ export function CrmApp() {
             )}
           </div>
         </div>
-      </header>
-      <section className={analyzed ? "hero hero-compact" : "hero"}>
-        <div className="shell">
-          <p className="hero-kicker">EXHIBITION CRM</p>
-          <h1>{step === 3 ? "제안 대상 검토" : "관심의 기록을, 다음 제안으로."}</h1>
-          {!analyzed && <p>상담 기록에서 고객의 요구를 읽고, 맞춤 제안을 준비할 대상을 찾습니다.</p>}
         </div>
-      </section>
+      </header>
+      <main>
+      {analyzed ? (
+        <div className="shell page-title">
+          <h1>제안 대상 검토</h1>
+        </div>
+      ) : (
+        <section className="shell hero">
+          <p className="hero-kicker">EXHIBITION CRM</p>
+          <h1>
+            관심의 기록을,
+            <br />
+            다음 제안으로.
+          </h1>
+          <p>상담 기록에서 고객의 요구를 읽고, 맞춤 제안을 준비할 대상을 찾습니다.</p>
+        </section>
+      )}
       <div className="shell">
         <ol className="steps" aria-label="진행 단계">
           {steps.map((label, index) => {
@@ -304,130 +319,169 @@ export function CrmApp() {
         </ol>
       </div>
       {counts && (
-        <dl className="summary-bar" aria-label="요약">
-          <div>
-            <dt>전체 접점</dt>
-            <dd>{counts.total.toLocaleString("ko-KR")}</dd>
-          </div>
-          <div>
-            <dt>고유 고객</dt>
-            <dd>{counts.customers.toLocaleString("ko-KR")}</dd>
-          </div>
-          <div>
-            <dt>A/B 후보 접점</dt>
-            <dd>{analyzed ? counts.ab.toLocaleString("ko-KR") : "분석 후 표시"}</dd>
-            {analyzed && partial && <small>현재 완료분 기준</small>}
-          </div>
-          <div>
-            <dt>분석 완료</dt>
-            <dd>{analyzed ? counts.done.toLocaleString("ko-KR") : "분석 후 표시"}</dd>
-          </div>
-          <div>
-            <dt>검토 필요</dt>
-            <dd>{analyzed ? counts.review.toLocaleString("ko-KR") : "분석 후 표시"}</dd>
-          </div>
-        </dl>
+        <div className="shell">
+          <dl className="summary-bar" aria-label="요약">
+            <div>
+              <dt>전체 접점</dt>
+              <dd>{counts.total.toLocaleString("ko-KR")}</dd>
+            </div>
+            <div>
+              <dt>고유 고객</dt>
+              <dd>{counts.customers.toLocaleString("ko-KR")}</dd>
+            </div>
+            <div>
+              <dt>A/B 후보 접점</dt>
+              <dd>{analyzed ? counts.ab.toLocaleString("ko-KR") : "분석 후 표시"}</dd>
+              {analyzed && partial && <small>현재 완료분 기준</small>}
+            </div>
+            <div>
+              <dt>분석 완료</dt>
+              <dd>{analyzed ? counts.done.toLocaleString("ko-KR") : "분석 후 표시"}</dd>
+            </div>
+            <div>
+              <dt>검토 필요</dt>
+              <dd>{analyzed ? counts.review.toLocaleString("ko-KR") : "분석 후 표시"}</dd>
+            </div>
+          </dl>
+        </div>
       )}
-      <main>
-        {!ready && <p className="shell py-4 text-sm text-muted">저장된 작업을 확인하고 있습니다. API는 호출하지 않습니다.</p>}
-        {configError && (
-          <p role="alert" className="shell py-3 text-sm text-danger">
-            {configError}
-          </p>
-        )}
-        {needsSetup && (
-          <div className="shell py-3 text-sm">
-            <p>AI 연결 설정이 필요합니다.</p>
-            <details className="mt-2">
-              <summary className="cursor-pointer font-medium">관리자 설정 안내</summary>
-              <p className="mt-2 max-w-3xl leading-6 text-muted">
-                서버 환경변수 GEMINI_API_KEY와 GEMINI_MODEL을 확인하세요. 로컬에서는 프로젝트 루트의 .env.local에 넣은 뒤 개발 서버를 다시
-                시작하고, 배포 환경에서는 같은 값을 설정한 뒤 다시 배포하세요. API 키 값은 이 화면에 표시하지 않습니다.
-                {config?.model ? ` 현재 설정된 모델은 ${config.model}입니다.` : ""}
-              </p>
-            </details>
-          </div>
-        )}
-        {criteriaBlocked && (
-          <p role="alert" className="shell py-3 text-sm text-danger">
-            저장된 작업의 라벨 기준이 현재 버전과 달라 불러오지 않았습니다. 더보기의 초기화 후 파일을 다시 올려 주세요.
-          </p>
-        )}
-        {modelMismatch && (
-          <p role="alert" className="shell py-3 text-sm text-danger">
-            저장된 작업은 다른 모델 기준입니다. 결과를 섞지 않도록 이어서 처리하지 않습니다. 초기화한 뒤 다시 시작해 주세요.
-          </p>
-        )}
-        {notice && <p className="shell py-3 text-sm text-muted">{notice}</p>}
+      {!ready && <p className="shell notice">저장된 작업을 확인하고 있습니다. API는 호출하지 않습니다.</p>}
+      {configError && (
+        <p role="alert" className="shell notice text-danger">
+          {configError}
+        </p>
+      )}
+      {needsSetup && (
+        <div className="shell notice">
+          <p>AI 연결 설정이 필요합니다.</p>
+          <details className="mt-2">
+            <summary className="disclosure font-medium">관리자 설정 안내</summary>
+            <p className="mt-2 max-w-3xl leading-6 text-muted">
+              서버 환경변수 GEMINI_API_KEY와 GEMINI_MODEL을 확인하세요. 로컬에서는 프로젝트 루트의 .env.local에 넣은 뒤 개발 서버를 다시
+              시작하고, 배포 환경에서는 같은 값을 설정한 뒤 다시 배포하세요. API 키 값은 이 화면에 표시하지 않습니다.
+              {config?.model ? ` 현재 설정된 모델은 ${config.model}입니다.` : ""}
+            </p>
+          </details>
+        </div>
+      )}
+      {criteriaBlocked && (
+        <p role="alert" className="shell notice text-danger">
+          저장된 작업의 라벨 기준이 현재 버전과 달라 불러오지 않았습니다. 더보기의 초기화 후 파일을 다시 올려 주세요.
+        </p>
+      )}
+      {modelMismatch && (
+        <p role="alert" className="shell notice text-danger">
+          저장된 작업은 다른 모델 기준입니다. 결과를 섞지 않도록 이어서 처리하지 않습니다. 초기화한 뒤 다시 시작해 주세요.
+        </p>
+      )}
+      {notice && <p className="shell notice">{notice}</p>}
+      {!activeJob && (
         <UploadPanel
-          fileName={draftName ?? job?.fileName ?? null}
-          parsed={draft ?? (job ? previewFromJob(job) : null)}
+          variant="empty"
+          fileName={fileName}
+          parsed={parsed}
           encodingError={encodingError}
           disabled={!ready || running}
           onFile={(file) => void onFile(file)}
         />
-        {activeJob && (
-          <RunPanel
-            records={activeJob.records}
-            running={running}
-            pauseRequested={pauseRequested}
-            canStart={canStart}
-            canResume={canResume}
-            message={runMessage}
-            batchSize={batchSize}
-            onBatchSize={(value) => setBatchSize(clampBatch(value))}
-            onStart={() => void execute(activeJob.records)}
-            onPause={() => {
-              pauseRef.current = true;
-              setPauseRequested(true);
-            }}
-            onResume={() => void execute(activeJob.records)}
-            onRetry={() => {
-              const retried = activeJob.records.map((record) =>
-                record.status === "실패"
-                  ? {
-                      ...record,
-                      status: "대기" as const,
-                      attempts: 0,
-                      error: null,
-                      grade: null,
-                      selectionReason: null,
-                      analysis: null,
-                      processingMethod: null,
-                      model: null,
-                    }
-                  : record,
-              );
-              void execute(retried);
-            }}
-          />
-        )}
-        {activeJob && !analyzed && (
-          <div className="shell pb-4">
-            <details className="text-sm">
-              <summary className="cursor-pointer font-medium">다운로드</summary>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <button type="button" className="btn-secondary" onClick={() => download("all", "csv")}>
-                  전체 결과 CSV
-                </button>
-                <button type="button" className="btn-secondary" onClick={() => download("all", "json")}>
-                  전체 결과 JSON
-                </button>
-              </div>
-            </details>
+      )}
+      {activeJob && !analyzed && (
+        <UploadPanel
+          variant="review"
+          fileName={fileName}
+          parsed={parsed}
+          encodingError={encodingError}
+          disabled={!ready || running}
+          onFile={(file) => void onFile(file)}
+        />
+      )}
+      {activeJob && analyzed && (
+        <div className="shell">
+          <div className="file-row panel">
+            <p className="text-sm font-semibold">{fileName ?? "이름 없음"}</p>
+            <button
+              type="button"
+              className="btn-secondary"
+              aria-expanded={sourceOpen}
+              onClick={() => setSourceOpen((open) => !open)}
+            >
+              원본 데이터 확인
+            </button>
           </div>
-        )}
-        {activeJob && analyzed && (
-          <ResultsWorkspace
-            records={activeJob.records}
-            columns={activeJob.columns}
-            selectedIds={activeJob.selectedIds}
-            activeId={activeId}
-            onOpen={setActiveId}
-            onSelectIds={(ids) => replaceJob({ ...activeJob, selectedIds: ids, updatedAt: new Date().toISOString() })}
-            onDownload={download}
-          />
-        )}
+        </div>
+      )}
+      {activeJob && analyzed && sourceOpen && (
+        <UploadPanel
+          variant="source"
+          fileName={fileName}
+          parsed={parsed}
+          encodingError={encodingError}
+          disabled={!ready || running}
+          onFile={(file) => void onFile(file)}
+        />
+      )}
+      {activeJob && (
+        <RunPanel
+          records={activeJob.records}
+          running={running}
+          pauseRequested={pauseRequested}
+          canStart={canStart}
+          canResume={canResume}
+          message={runMessage}
+          batchSize={batchSize}
+          onBatchSize={(value) => setBatchSize(clampBatch(value))}
+          onStart={() => void execute(activeJob.records)}
+          onPause={() => {
+            pauseRef.current = true;
+            setPauseRequested(true);
+          }}
+          onResume={() => void execute(activeJob.records)}
+          onRetry={() => {
+            const retried = activeJob.records.map((record) =>
+              record.status === "실패"
+                ? {
+                    ...record,
+                    status: "대기" as const,
+                    attempts: 0,
+                    error: null,
+                    grade: null,
+                    selectionReason: null,
+                    analysis: null,
+                    processingMethod: null,
+                    model: null,
+                  }
+                : record,
+            );
+            void execute(retried);
+          }}
+        />
+      )}
+      {activeJob && analyzed && (
+        <ResultsWorkspace
+          records={activeJob.records}
+          columns={activeJob.columns}
+          selectedIds={activeJob.selectedIds}
+          activeId={activeId}
+          onOpen={setActiveId}
+          onSelectIds={(ids) => replaceJob({ ...activeJob, selectedIds: ids, updatedAt: new Date().toISOString() })}
+          onDownload={download}
+        />
+      )}
+      {activeJob && !analyzed && (
+        <div className="shell mt-3 text-sm">
+          <details>
+            <summary className="disclosure font-medium">다운로드</summary>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button type="button" className="btn-secondary" onClick={() => download("all", "csv")}>
+                전체 결과 CSV
+              </button>
+              <button type="button" className="btn-secondary" onClick={() => download("all", "json")}>
+                전체 결과 JSON
+              </button>
+            </div>
+          </details>
+        </div>
+      )}
       </main>
       <footer className="site-footer">AI+X 해커톤 프로젝트</footer>
       <CriteriaDialog open={criteriaOpen} onClose={() => setCriteriaOpen(false)} />
