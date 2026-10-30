@@ -2,6 +2,7 @@ import type {
   AnalysisField,
   CONTACT_PURPOSES,
   FOLLOW_UP_REQUESTS,
+  DEMO_METHOD,
   GEMINI_METHOD,
   GRADES,
   INTEREST_AREAS,
@@ -20,7 +21,7 @@ export type MeetingIntent = (typeof MEETING_INTENTS)[number];
 export type ReviewReason = (typeof REVIEW_REASONS)[number];
 export type Grade = (typeof GRADES)[number];
 export type ProcessingStatus = (typeof PROCESSING_STATUSES)[number];
-export type ProcessingMethod = typeof RULE_EMPTY_METHOD | typeof GEMINI_METHOD;
+export type ProcessingMethod = typeof RULE_EMPTY_METHOD | typeof GEMINI_METHOD | typeof DEMO_METHOD;
 
 export interface Evidence {
   label: string;
@@ -65,6 +66,7 @@ export interface StoredJob {
   selectedIds: string[];
   phase: "ready" | "running" | "paused" | "completed" | "halted";
   haltMessage: string | null;
+  sourceNote: string | null;
   updatedAt: string;
 }
 

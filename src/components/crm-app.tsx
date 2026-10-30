@@ -5,8 +5,9 @@ import { CriteriaDialog } from "@/components/criteria-dialog";
 import { ResultsWorkspace } from "@/components/results-workspace";
 import { RunPanel } from "@/components/run-panel";
 import { UploadPanel } from "@/components/upload-panel";
-import { BATCH_SETTINGS, CRITERIA_VERSION } from "@/lib/criteria";
+import { ANALYSIS_FIELDS, BATCH_SETTINGS, CRITERIA_VERSION } from "@/lib/criteria";
 import { decodeCsvBytes, parseCrmCsv, recordsFromParsed, type ParsedCsv } from "@/lib/csv";
+import { applyDemoMatches, type DemoMatch } from "@/lib/demo-match";
 import { exportJson, exportRows, selectRecords, toCsv } from "@/lib/export";
 import { compareRecords } from "@/lib/grade";
 import { createJobId } from "@/lib/job-id";
@@ -50,6 +51,7 @@ export function CrmApp() {
   const [notice, setNotice] = useState<string | null>(null);
   const pauseRef = useRef(false);
   const runningRef = useRef(false);
+  const uploadSeq = useRef(0);
   const jobRef = useRef<StoredJob | null>(null);
   const saveQueue = useRef<Promise<void>>(Promise.resolve());
 
@@ -72,7 +74,7 @@ export function CrmApp() {
           setCriteriaBlocked(true);
           return;
         }
-        const prepared = prepareForResume(stored);
+        const prepared = prepareForResume({ ...stored, sourceNote: stored.sourceNote ?? null });
         if (prepared !== stored) await saveJob(prepared);
         if (!cancelled) setJob(prepared);
       } catch {
@@ -121,7 +123,7 @@ export function CrmApp() {
     const modelId = config?.model ?? "";
     const id = await createJobId(bytes, CRITERIA_VERSION, modelId);
     const existing = jobRef.current;
-    if (existing?.id === id) {
+    if (existing?.id === id && existing.sourceNote) {
       setNotice("같은 파일의 저장된 작업을 유지합니다.");
       return;
     }
@@ -129,18 +131,30 @@ export function CrmApp() {
       const confirmed = window.confirm("저장된 라벨링 작업을 새 파일로 바꿀까요?");
       if (!confirmed) return;
     }
+    const records = recordsFromParsed(parsed);
+    const seq = uploadSeq.current + 1;
+    uploadSeq.current = seq;
+    setNotice("저장된 분류를 불러오는 중입니다.");
+    const demo = await requestDemoMatches(records);
+    if (seq !== uploadSeq.current) return;
+    if (!demo) {
+      setNotice("저장된 시연 결과를 불러오지 못했습니다. 파일을 다시 올려 주세요.");
+      return;
+    }
     const next: StoredJob = {
       id,
       fileName: file.name,
       criteriaVersion: CRITERIA_VERSION,
       modelId,
       columns: parsed.columns,
-      records: recordsFromParsed(parsed),
+      records: applyDemoMatches(records, demo.matches, demo.criteriaVersion),
       selectedIds: [],
-      phase: "ready",
+      phase: "completed",
       haltMessage: null,
+      sourceNote: demo.displayLabel,
       updatedAt: new Date().toISOString(),
     };
+    setNotice(null);
     setActiveId(null);
     setCriteriaBlocked(false);
     replaceJob(next);
@@ -232,10 +246,14 @@ export function CrmApp() {
   const partial = Boolean(
     activeJob && started && activeJob.records.some((record) => record.status === "대기" || record.status === "처리 중"),
   );
-  const step = !activeJob ? 1 : activeJob.records.every((record) => record.status === "완료" || record.status === "실패") && !running ? 3 : 2;
+  const step = !activeJob
+    ? 1
+    : activeJob.records.every((record) => record.status === "완료" || record.status === "실패" || record.status === "저장 결과 없음") && !running
+      ? 3
+      : 2;
   const analyzed = Boolean(activeJob?.records.some((record) => record.status !== "대기"));
 
-  const needsSetup = Boolean((config && !config.configured) || job?.haltMessage === CONFIG_MESSAGE);
+  const needsSetup = job?.haltMessage === CONFIG_MESSAGE && !job.sourceNote;
   const runMessage = job?.haltMessage && job.haltMessage !== CONFIG_MESSAGE ? job.haltMessage : null;
   const apiLabel = !ready ? "확인 중" : configError || !config ? "확인 실패" : config.configured ? "연결됨" : "설정 필요";
   const steps = ["데이터 업로드", "AI 분석", "제안 대상 검토"];
@@ -293,6 +311,7 @@ export function CrmApp() {
       {analyzed ? (
         <div className="shell page-title">
           <h1>제안 대상 검토</h1>
+          {activeJob?.sourceNote && <p className="demo-badge">{activeJob.sourceNote}</p>}
         </div>
       ) : (
         <section className="shell hero">
@@ -354,7 +373,7 @@ export function CrmApp() {
           {configError}
         </p>
       )}
-      {needsSetup && (
+      {needsSetup && !activeJob?.sourceNote && (
         <div className="shell notice">
           <p>AI 연결 설정이 필요합니다.</p>
           <details className="mt-2">
@@ -423,7 +442,7 @@ export function CrmApp() {
           onFile={(file) => void onFile(file)}
         />
       )}
-      {activeJob && (
+      {activeJob && !activeJob.sourceNote && (
         <RunPanel
           records={activeJob.records}
           running={running}
@@ -507,6 +526,35 @@ function previewFromJob(current: StoredJob): ParsedCsv {
     canRun: true,
     blockReason: null,
   };
+}
+
+async function requestDemoMatches(
+  records: ContactRecord[],
+): Promise<{ displayLabel: string; criteriaVersion: string; matches: DemoMatch[] } | null> {
+  try {
+    const response = await fetch("/api/demo-match", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        rows: records.map((record) => ({
+          contactId: record.contactId,
+          fields: Object.fromEntries(ANALYSIS_FIELDS.map((field) => [field, record.source[field] ?? ""])),
+        })),
+      }),
+    });
+    if (!response.ok) return null;
+    const payload = (await response.json()) as {
+      displayLabel?: unknown;
+      criteriaVersion?: unknown;
+      matches?: DemoMatch[];
+    };
+    if (typeof payload.displayLabel !== "string" || typeof payload.criteriaVersion !== "string" || !Array.isArray(payload.matches)) {
+      return null;
+    }
+    return { displayLabel: payload.displayLabel, criteriaVersion: payload.criteriaVersion, matches: payload.matches };
+  } catch {
+    return null;
+  }
 }
 
 function clampBatch(value: number): number {

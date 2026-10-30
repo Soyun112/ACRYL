@@ -339,6 +339,7 @@ describe("실행 제어", () => {
       selectedIds: ["001"],
       phase: "running",
       haltMessage: null,
+      sourceNote: null,
       updatedAt: "2026-10-31T00:00:00.000Z",
       records: [record("001", "제품소개서", "처리 중"), record("002", "제품소개서", "완료")],
     };

@@ -33,8 +33,8 @@ export function RunPanel({
 }) {
   const counts = countByStatus(records);
   const started = records.some((record) => record.status !== "대기");
-  const finished = !running && records.every((record) => record.status === "완료" || record.status === "실패");
-  const accounted = counts.done + counts.processing + counts.pending + counts.failed;
+  const finished = !running && records.every((record) => record.status === "완료" || record.status === "실패" || record.status === "저장 결과 없음");
+  const accounted = counts.done + counts.processing + counts.pending + counts.failed + counts.unmatched;
   const width = counts.total === 0 ? 0 : Math.round((counts.done / counts.total) * 100);
 
   if (!started && !running) {

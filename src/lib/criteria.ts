@@ -65,6 +65,8 @@ export const NOT_APPLICABLE = "해당 없음";
 export const CONTENT_CONFLICT = "내용 충돌";
 export const RULE_EMPTY_METHOD = "규칙: 정보 없음" as const;
 export const GEMINI_METHOD = "Gemini" as const;
+export const DEMO_METHOD = "원문 기반 시연" as const;
+export const NO_SAVED_RESULT = "저장 결과 없음" as const;
 
 export const EVIDENCE_LABELS = [
   "자사 도입",
@@ -249,7 +251,7 @@ export const GRADE_LABELS: Record<(typeof GRADES)[number], string> = {
   검토: "검토",
 };
 
-export const PROCESSING_STATUSES = ["대기", "처리 중", "완료", "실패"] as const;
+export const PROCESSING_STATUSES = ["대기", "처리 중", "완료", "실패", "저장 결과 없음"] as const;
 
 export const SORT_NOTE =
   "같은 등급에서는 미팅을 희망한 접점을 앞에 표시합니다. 이 순서는 정밀한 영업 순위가 아닙니다.";

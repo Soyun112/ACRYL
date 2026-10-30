@@ -16,6 +16,7 @@ export function countByStatus(records: ContactRecord[]) {
     processing: records.filter((record) => record.status === "처리 중").length,
     done: records.filter((record) => record.status === "완료").length,
     failed: records.filter((record) => record.status === "실패").length,
+    unmatched: records.filter((record) => record.status === "저장 결과 없음").length,
     ab: records.filter((record) => record.status === "완료" && (record.grade === "A" || record.grade === "B")).length,
     review: records.filter((record) => record.grade === "검토").length,
     customers: countUniqueCustomers(records),
