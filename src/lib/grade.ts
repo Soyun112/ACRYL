@@ -99,7 +99,7 @@ export function gradeAnalysis(input: GradeInput): { grade: Grade; selectionReaso
 }
 
 export function gradeLabel(grade: Grade): string {
-  if (grade === "검토") return "검토";
+  if (grade === "검토") return "검토 필요";
   return `${grade} ${GRADE_LABELS[grade]}`;
 }
 

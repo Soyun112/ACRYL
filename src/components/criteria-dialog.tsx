@@ -30,7 +30,7 @@ export function CriteriaDialog({ open, onClose }: { open: boolean; onClose: () =
       <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
         <div>
           <h2 id="criteria-title" className="text-lg font-semibold">
-            라벨링 기준
+            분류 기준
           </h2>
           <p className="mt-1 text-sm text-muted">버전 {CRITERIA_VERSION}</p>
         </div>
