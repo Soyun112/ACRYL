@@ -334,16 +334,16 @@ export function CrmApp() {
             </div>
             <div>
               <dt>A/B 후보 접점</dt>
-              <dd>{analyzed ? counts.ab.toLocaleString("ko-KR") : "분석 후 표시"}</dd>
+              <dd className={analyzed ? undefined : "pending"}>{analyzed ? counts.ab.toLocaleString("ko-KR") : "분석 후 표시"}</dd>
               {analyzed && partial && <small>현재 완료분 기준</small>}
             </div>
             <div>
               <dt>분석 완료</dt>
-              <dd>{analyzed ? counts.done.toLocaleString("ko-KR") : "분석 후 표시"}</dd>
+              <dd className={analyzed ? undefined : "pending"}>{analyzed ? counts.done.toLocaleString("ko-KR") : "분석 후 표시"}</dd>
             </div>
             <div>
               <dt>검토 필요</dt>
-              <dd>{analyzed ? counts.review.toLocaleString("ko-KR") : "분석 후 표시"}</dd>
+              <dd className={analyzed ? undefined : "pending"}>{analyzed ? counts.review.toLocaleString("ko-KR") : "분석 후 표시"}</dd>
             </div>
           </dl>
         </div>

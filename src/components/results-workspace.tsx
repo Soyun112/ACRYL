@@ -257,6 +257,7 @@ export function ResultsWorkspace({
                       key={record.contactId}
                       tabIndex={0}
                       aria-selected={activeId === record.contactId}
+                      data-status={record.status}
                       onClick={() => onOpen(record.contactId)}
                       onKeyDown={(event) => {
                         if (event.key === "Enter") onOpen(record.contactId);
@@ -273,7 +274,7 @@ export function ResultsWorkspace({
                         />
                       </td>
                       <td className="font-semibold">{record.customerId.trim() ? record.customerId : "—"}</td>
-                      <td>{record.grade ? <span className={GRADE_CLASS[record.grade]}>{gradeLabel(record.grade)}</span> : record.status}</td>
+                      <td>{record.grade ? <span className={GRADE_CLASS[record.grade]}>{gradeLabel(record.grade)}</span> : <span className="row-status" data-status={record.status}>{record.status}</span>}</td>
                       <td>
                         {record.analysis && record.analysis.interestAreas.length > 0 ? (
                           record.analysis.interestAreas.map((area) => (
